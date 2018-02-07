@@ -1,16 +1,20 @@
-EXE=vecadd-kokkos
+EXE = vecadd-kokkos
+SRC = *.cpp
+OBJ = $(notdir $(SRC:.cpp=.o))
 
+all: $(EXE)
 include $(KOKKOS_PATH)/Makefile.kokkos
 
 CXX = $(NVCC_WRAPPER)
-CXXFLAGS= -Wall -O3
+CXXFLAGS = -Wall -O3
+LINK = $(CXX)
 LIBS = -lm
 
-all: $(EXE)
+$(EXE): $(OBJ) $(KOKKOS_LINK_DEPENDS)
+	$(LINK) $(KOKKOS_LDFLAGS) $(LDFLAGS) $(EXTRA_PATH) $(OBJ) $(KOKKOS_LIBS) $(LIB) -o $(EXE)
 
-$(EXE): $(EXE).cpp
-	$(CXX) $(CXXFLAGS) $(KOKKOS_CPPFLAGS) $(KOKKOS_CXXFLAGS) $^ $(LIBS) $(KOKKOS_LDFLAGS) $(KOKKOS_LIBS) -o $@
-
+%.o:%.cpp $(KOKKOS_CPP_DEPENDS)
+	$(CXX) $(KOKKOS_CPPFLAGS) $(KOKKOS_CXXFLAGS) $(CXXFLAGS) $(EXTRA_INC) -c $< -o $(notdir $@)
 
 clean:
-	rm $(EXE)
+	rm $(EXE) $(OBJ)
