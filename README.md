@@ -1,7 +1,7 @@
 # Advanced HPC examples
 
 Each of the example subdirectories contains a Makefile and a job
-submission script.
+submission script (note that the `gpu` partition is used).
 
 The examples each require additional modules to be loaded before they
 can be compiled and run.
