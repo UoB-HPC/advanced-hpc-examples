@@ -6,8 +6,8 @@
 
 void die(const char *message, const int line, const char *file);
 
-void initialise(float **a, float **b, float **c, const int N);
-void finalise(float **a, float **b, float **c);
+void initialise(float **a_ptr, float **b_ptr, float **c_ptr, const int N);
+void finalise(float **a_ptr, float **b_ptr, float **c_ptr, const int N);
 
 int main(int argc, char const *argv[]) {
   int N = 1024; /* vector size */
@@ -24,16 +24,21 @@ int main(int argc, char const *argv[]) {
     b[i] = 2.f;
   }
 
-// Set up the mapping of arrays between the host and the device
-#pragma omp target data map(to : a [0:N], b [0:N]) map(from : c [0:N])
+  // Copy the values to the device
+  #pragma omp target update to(a[0:N], b[0:N])
+  {}
+
   for (int itr = 0; itr < num_iterations; itr++) {
-// Execute vecadd on the target device
-#pragma omp target
-#pragma omp teams distribute parallel for simd
+  // Execute vecadd on the target device
+#pragma omp target teams distribute parallel for
     for (int i = 0; i < N; i++) {
       c[i] = a[i] + b[i];
     }
   }
+
+  // Copy the result from the device
+  #pragma omp target update from(c[0:N])
+  {}
 
   // Verify the results
   int correct_results = 1;
@@ -48,32 +53,50 @@ int main(int argc, char const *argv[]) {
     printf("Success!\n");
   }
 
-  finalise(&a, &b, &c);
+  finalise(&a, &b, &c, N);
   return 0;
 }
 
-void initialise(float **a, float **b, float **c, const int N) {
+void initialise(float **a_ptr, float **b_ptr, float **c_ptr, const int N) {
   // Initialise the arrays on the host
-  *a = malloc(sizeof(float) * N);
-  if (*a == NULL)
+  *a_ptr = malloc(sizeof(float) * N);
+  if (*a_ptr == NULL)
     die("cannot allocate memory for a", __LINE__, __FILE__);
-  *b = malloc(sizeof(float) * N);
-  if (*b == NULL)
+  *b_ptr = malloc(sizeof(float) * N);
+  if (*b_ptr == NULL)
     die("cannot allocate memory for b", __LINE__, __FILE__);
-  *c = malloc(sizeof(float) * N);
-  if (*c == NULL)
+  *c_ptr = malloc(sizeof(float) * N);
+  if (*c_ptr == NULL)
     die("cannot allocate memory for c", __LINE__, __FILE__);
+
+  // Have to place all pointers into local variables
+  // for OpenMP to accept them in mapping clauses
+  float *a = *a_ptr;
+  float *b = *b_ptr;
+  float *c = *c_ptr;
+
+  // Set up data region on device
+  #pragma omp target enter data map(alloc: a[0:N], b[0:N], c[0:N])
+  {}
 }
 
-void finalise(float **a, float **b, float **c) {
-  free(*a);
-  *a = NULL;
+void finalise(float **a_ptr, float **b_ptr, float **c_ptr, const int N) {
+  // Have to place all pointers into local variables
+  // for OpenMP to accept them in mapping clauses
+  float *a = *a_ptr;
+  float *b = *b_ptr;
+  float *c = *c_ptr;
 
-  free(*b);
-  *b = NULL;
+  // End data region on device
+  #pragma omp target exit data map(release: a[0:N], b[0:N], c[0:N])
+  {}
 
-  free(*c);
-  *c = NULL;
+  free(*a_ptr);
+  *a_ptr = NULL;
+  free(*b_ptr);
+  *b_ptr = NULL;
+  free(*c_ptr);
+  *c_ptr = NULL;
 }
 
 void die(const char *message, const int line, const char *file) {
