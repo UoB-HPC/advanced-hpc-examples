@@ -6,9 +6,9 @@
 /* struct to hold Kokkos objects */
 typedef struct {
   // Device side pointers to arrays
-  Kokkos::View<float *, Kokkos::Cuda> d_a;
-  Kokkos::View<float *, Kokkos::Cuda> d_b;
-  Kokkos::View<float *, Kokkos::Cuda> d_c;
+  Kokkos::View<float *> d_a;
+  Kokkos::View<float *> d_b;
+  Kokkos::View<float *> d_c;
   // HostSpace pointers with compatible layout
   Kokkos::View<float *>::HostMirror hm_a;
   Kokkos::View<float *>::HostMirror hm_b;
@@ -66,12 +66,12 @@ int main(int argc, char const *argv[]) {
 }
 
 void initialise(t_kokkos *kokkos, const int N) {
-  new(&kokkos->d_a) Kokkos::View<float *, Kokkos::Cuda>("d_a", N);
-  new(&kokkos->d_b) Kokkos::View<float *, Kokkos::Cuda>("d_b", N);
-  new(&kokkos->d_c) Kokkos::View<float *, Kokkos::Cuda>("d_c", N);
-  new(&kokkos->hm_a) Kokkos::View<float *, Kokkos::Cuda>::HostMirror();
-  new(&kokkos->hm_b) Kokkos::View<float *, Kokkos::Cuda>::HostMirror();
-  new(&kokkos->hm_c) Kokkos::View<float *, Kokkos::Cuda>::HostMirror();
+  new(&kokkos->d_a) Kokkos::View<float *>("d_a", N);
+  new(&kokkos->d_b) Kokkos::View<float *>("d_b", N);
+  new(&kokkos->d_c) Kokkos::View<float *>("d_c", N);
+  new(&kokkos->hm_a) Kokkos::View<float *>::HostMirror();
+  new(&kokkos->hm_b) Kokkos::View<float *>::HostMirror();
+  new(&kokkos->hm_c) Kokkos::View<float *>::HostMirror();
   // Allocate views of the HostMirror type of a view
   kokkos->hm_a = Kokkos::create_mirror_view(kokkos->d_a);
   kokkos->hm_b = Kokkos::create_mirror_view(kokkos->d_b);
